@@ -1,0 +1,32 @@
+/* Objetivo: Comparar el conteo de materias aprobadas por el alumno 
+   contra el total de materias que imparte el profesor P0000001.
+*/
+
+SELECT c.boleta, COUNT(DISTINCT c.clave) AS materias_aprobadas
+FROM Escuela.Cursa c
+JOIN Escuela.Imparte i 
+    ON c.clave = i.clave 
+    AND c.Semestre = i.semestre 
+    AND c.idGrupo = i.idGrupo
+WHERE i.numEmpleado = 'P0000001' -- Solo nos interesa este profesor
+  AND c.calif >= 6               -- Solo materias aprobadas
+GROUP BY c.boleta
+HAVING COUNT(DISTINCT c.clave) = (
+    /* Esta subconsulta devuelve el número total de 
+       materias únicas que imparte el profesor */
+    SELECT COUNT(DISTINCT clave) 
+    FROM Escuela.Imparte 
+    WHERE numEmpleado = 'P0000001'
+);
+
+¿Por qué usamos DISTINCT?
+Es vital usar DISTINCT c.clave porque un alumno podría haber recursado la materia con el mismo profesor o la materia podría estar registrada en varios grupos. 
+El DISTINCT asegura que contemos "materias únicas" y no registros repetidos.
+
+El JOIN y WHERE: Primero, filtramos la tabla Cursa para quedarnos solo con los registros donde el alumno aprobó y el profesor fue el P0000001.
+
+GROUP BY: Agrupamos por boleta para contar cuántas materias distintas tiene cada alumno bajo esas condiciones.
+
+La Subconsulta (El estándar): (SELECT COUNT(DISTINCT clave)...) calcula de forma independiente cuántas materias da el profesor en total (digamos que son 2: la '102' y la '103').
+
+HAVING: Finalmente, el HAVING actúa como un filtro de grupos. Solo deja pasar a los alumnos cuyo conteo sea igual al número que dio la subconsulta. Si el profesor da 2 materias y el alumno aprobó 2 con él, entonces ese alumno "aprobó todas".
